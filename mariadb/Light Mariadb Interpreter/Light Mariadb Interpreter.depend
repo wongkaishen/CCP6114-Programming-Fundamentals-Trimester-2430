@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1734949482 source:c:\mariadb\light mariadb interpreter\main.cpp
+	<iostream>
+	<fstream>
+	<vector>
+	<string>
+	<algorithm>
+
