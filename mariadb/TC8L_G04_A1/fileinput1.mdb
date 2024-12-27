@@ -1,14 +1,6 @@
 CREATE fileOutput1.txt;
 DATABASES;
-CREATE TABLE customer(
-customer_id INT,
-customer_name TEXT,
-customer_city TEXT,
-customer_state TEXT,
-customer_country TEXT,
-customer_phone TEXT,
-customer_email TEXT
-);
+CREATE TABLE customer(customer_id INT,customer_name TEXT,customer_city TEXT,customer_state TEXT,customer_country TEXT,customer_phone TEXT,customer_email TEXT);
 TABLES;
 INSERT INTO
 customer(customer_id,customer_name,customer_city,customer_state,customer_country,custom

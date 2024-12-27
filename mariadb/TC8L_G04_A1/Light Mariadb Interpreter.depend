@@ -1,0 +1,15 @@
+# depslib dependency file v1.0
+1734949482 source:c:\mariadb\light mariadb interpreter\main.cpp
+	<iostream>
+	<fstream>
+	<vector>
+	<string>
+	<algorithm>
+
+1735110191 source:c:\users\wongk\documents\github\ccp6114-programming-fundamentals-trimester-2430\mariadb\light mariadb interpreter\main.cpp
+	<iostream>
+	<fstream>
+	<string>
+	<vector>
+	<sstream>
+
