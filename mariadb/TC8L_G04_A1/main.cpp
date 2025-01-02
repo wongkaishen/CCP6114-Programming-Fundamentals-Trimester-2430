@@ -1,16 +1,3 @@
-// *********************************************************
-// Program: Light Mariadb Interpreter.cpp
-// Course: CCP6114 Programming Fundamentals
-// Lecture Class: TC8L
-// Tutorial Class: T16L
-// Trimester: 2430
-// Member_1: 243UC247DH | Wong Kai Shen| wong.kai.shen@student.mmu.edu.my | 0167129682
-// Member_2: 243UC2467K | Teh Shin Rou | 
-// Member_3: 243UC2466T | Nyiam Zi Qin | 
-// Member_4: 243UC246NQ | YEN MING JUN | 
-// *********************************************************
-
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -20,7 +7,7 @@
 using namespace std;
 
 int main() {
-    ifstream inFile("fileinput1.mdb");
+    ifstream inFile("fileinput1.txt");
     ofstream outFile("fileoutput1.txt");
     string line;
     vector<string> headers;
@@ -29,7 +16,7 @@ int main() {
     string tableName;
 
     if (!inFile) {
-        cout << "Error opening fileinput1.mdb" << endl;
+        cout << "Error opening fileinput1.txt" << endl;
         return 1;
     }
 
@@ -61,7 +48,6 @@ int main() {
                     }
                 }
             }
-
             // If line contains the closing parenthesis, finish parsing the table schema
             else if (end != string::npos) {
                 stringstream ss(line);

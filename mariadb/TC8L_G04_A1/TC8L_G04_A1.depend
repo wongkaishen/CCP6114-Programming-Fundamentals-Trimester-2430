@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1735119387 source:c:\users\wongk\desktop\tc8l_g04_a1\main.cpp
+	<iostream>
+	<fstream>
+	<string>
+	<vector>
+	<sstream>
+
