@@ -155,6 +155,61 @@ void processDelete(const string& line, vector<vector<string>>& data, const vecto
     cout << "Deleted " << (originalSize - data.size()) << " rows" << endl;
 }
 
+void processUPDATE(const string& line, vector<string>& headers, vector<vector<string>>& data) {
+    // Parse UPDATE statement
+    size_t setPos = line.find("SET");     // Find where 'SET' starts in the line
+    size_t wherePos = line.find("WHERE"); // Find where 'WHERE' starts in the line
+
+    if (setPos != string::npos && wherePos != string::npos) {
+        // Extract table name
+        string tableName = line.substr(line.find("UPDATE") + 6, setPos - (line.find("UPDATE") + 6));
+        tableName = tableName.substr(tableName.find_first_not_of(' '), tableName.find_last_not_of(' ') - tableName.find_first_not_of(' ') + 1);
+
+        // Extract column name and value (from SET clause)
+        string setClause = line.substr(setPos + 4, wherePos - (setPos + 4));
+        size_t equalSetPos = setClause.find("="); // Find the equal sign to separate column name and value
+        size_t startQuote = setClause.find("'", equalSetPos); // Start after the first quote
+        size_t endQuote = setClause.find("'", startQuote + 1); // Find the end quote
+        string updateColumn = setClause.substr(0, equalSetPos);
+        updateColumn = updateColumn.substr(updateColumn.find_first_not_of(' '), updateColumn.find_last_not_of(' ') - updateColumn.find_first_not_of(' ') + 1);
+
+        // Extract the update value
+        string updateValue = setClause.substr(startQuote + 1, endQuote - startQuote - 1);
+
+        // Extract column name and value (from WHERE clause)
+        string whereClause = line.substr(wherePos + 5);
+        size_t equalWherePos = whereClause.find("="); // Find the equal sign to separate column name and value
+        string whereColumn = whereClause.substr(0, equalWherePos);
+        whereColumn = whereColumn.substr(whereColumn.find_first_not_of(' '), whereColumn.find_last_not_of(' ') - whereColumn.find_first_not_of(' ') + 1);
+
+        // Extract the WHERE value
+        string whereValue = whereClause.substr(equalWherePos + 1);
+        whereValue = whereValue.substr(whereValue.find_first_not_of(' '), whereValue.find_last_not_of(' ') - whereValue.find_first_not_of(' ') + 1);
+        if (!whereValue.empty() && whereValue.back() == ';') {
+            whereValue = whereValue.substr(0, whereValue.size() - 1);
+        }
+
+        // Find column indices for UPDATE and WHERE
+        int updateIndex = -1, whereIndex = -1; // Initialize indices as not found (-1)
+        for (size_t i = 0; i < headers.size(); i++) {
+            if (headers[i] == updateColumn) updateIndex = i;
+            if (headers[i] == whereColumn) whereIndex = i;
+        }
+
+        // Update the data in matching rows
+        if (updateIndex != -1 && whereIndex != -1) { // Check if the indices are valid
+            for (auto& row : data) {
+                if (row[whereIndex] == whereValue) { // Compare the value in WHERE column
+                    row[updateIndex] = updateValue; // Update the value if WHERE condition is matched
+                }
+            }
+        } else {
+            cerr << "Error: Column not found in the table headers.\n";
+        }
+    } else {
+        cerr << "Error: Malformed UPDATE statement.\n";
+    }
+}
 
 
 int main() {
@@ -181,6 +236,9 @@ int main() {
             processCreateTable(line, headers, accumulatedColumns, inCreateTable);
         } else if (line.find("VALUES") != string::npos) {
             processValues(line, data);
+        }
+        else if (line.find("UPDATE") != string::npos) {
+        processUPDATE(line, headers, data);
         }
     }
 
