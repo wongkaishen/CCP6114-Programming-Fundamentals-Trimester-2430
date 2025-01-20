@@ -6,64 +6,94 @@
 
 using namespace std;
 
+void processCreateTable(const string& line, vector<string>& headers, string& accumulatedColumns, bool& inCreateTable) {
+    size_t start = line.find("CREATE TABLE") + 12;
+    size_t end = line.find("(");
+    if (start != string::npos && end != string::npos) {
+        inCreateTable = true;
+    }
+
+    if (inCreateTable) {
+        start = line.find('(');
+        end = line.find(')');
+        if (start != string::npos) {
+            // Start of column definitions
+            accumulatedColumns += line.substr(start + 1);
+        } else {
+            accumulatedColumns += line; // Accumulate multi-line definitions
+        }
+
+        if (end != string::npos) {
+            // End of column definitions
+            accumulatedColumns = accumulatedColumns.substr(0, accumulatedColumns.find(')')); // Remove trailing `)`
+            stringstream ss(accumulatedColumns);
+            string column;
+            while (getline(ss, column, ',')) {
+                size_t spacePos = column.find(' ');
+                if (spacePos != string::npos) {
+                    headers.push_back(column.substr(0, spacePos));
+                }
+            }
+            inCreateTable = false;
+            accumulatedColumns.clear();
+        }
+    }
+}
+
+
 int main() {
-    ifstream inFile("fileinput1.txt");
-    ofstream outFile("fileoutput1.txt");
+    ifstream inFile("fileinput2.txt");
+    ofstream outFile("fileoutput2.txt");
     string line;
     vector<string> headers;
     vector<vector<string>> data;
     bool inCreateTable = false;
     string tableName;
+    string accumulatedColumns;
 
     if (!inFile) {
-        cout << "Error opening fileinput1.txt" << endl;
+        cout << "Error opening fileinput2.txt" << endl;
         return 1;
     }
 
+    // First pass: Process CREATE TABLE and INSERT
     while (getline(inFile, line)) {
-        // Detect the start of a CREATE TABLE block
+        if (line.find("DELETE FROM") != string::npos) {
+            continue;
+        }
+
         if (line.find("CREATE TABLE") != string::npos) {
             inCreateTable = true;
             size_t start = line.find("CREATE TABLE") + 12;
             size_t end = line.find("(");
-            tableName = line.substr(start, end - start);  // Extract table name
+            tableName = line.substr(start, end - start);
         }
 
-        // Parse headers within the CREATE TABLE block
         if (inCreateTable) {
             size_t start = line.find('(');
             size_t end = line.find(')');
             if (start != string::npos) {
-                string columns = line.substr(start + 1);  // Skip the '('
-                stringstream ss(columns);
-                string column;
+                // Start of column definitions
+                accumulatedColumns += line.substr(start + 1);
+            } else {
+                accumulatedColumns += line; // Accumulate multi-line definitions
+            }
 
-                // Process columns from the current line
-                while (getline(ss, column, ',')) {
-                    // Remove spaces from the column name and data type
-                    size_t spacePos = column.find(' ');
-                    if (spacePos != string::npos) {
-                        // Extract only the column name
-                        headers.push_back(column.substr(0, spacePos));
-                    }
-                }
-            }
-            // If line contains the closing parenthesis, finish parsing the table schema
-            else if (end != string::npos) {
-                stringstream ss(line);
+            if (end != string::npos) {
+                // End of column definitions
+                accumulatedColumns = accumulatedColumns.substr(0, accumulatedColumns.find(')')); // Remove trailing `)`
+                stringstream ss(accumulatedColumns);
                 string column;
                 while (getline(ss, column, ',')) {
                     size_t spacePos = column.find(' ');
                     if (spacePos != string::npos) {
-                        // Extract only the column name
                         headers.push_back(column.substr(0, spacePos));
                     }
                 }
-                inCreateTable = false; // End of CREATE TABLE block
+                inCreateTable = false;
+                accumulatedColumns.clear();
             }
-        }
-        else if (line.find("VALUES") != string::npos) {
-            // Parse the VALUES line to extract data
+        } else if (line.find("VALUES") != string::npos) {
             size_t start = line.find('(') + 1;
             size_t end = line.find(')');
             string values = line.substr(start, end - start);
@@ -89,9 +119,75 @@ int main() {
             }
             data.push_back(row);
         }
+
+            // UPDATE function
+        else if (line.find("UPDATE") != string::npos) {
+            // Parse UPDATE statement
+            size_t setPos = line.find("SET");     // Find where 'SET' starts in the line
+            size_t wherePos = line.find("WHERE"); // Find where 'WHERE' starts in the line
+
+            if (setPos != string::npos && wherePos != string::npos) {
+                // Extract table name
+                string tableName = line.substr(line.find("UPDATE") + 6, setPos - (line.find("UPDATE") + 6));
+                tableName = tableName.substr(tableName.find_first_not_of(' '), tableName.find_last_not_of(' ') - tableName.find_first_not_of(' ') + 1);
+
+                // Extract column name and value (from SET clause)
+                string setClause = line.substr(setPos + 4, wherePos - (setPos + 4));
+                size_t equalSetPos = setClause.find("="); // Find the equal sign to separate column name and value
+                size_t startQuote = setClause.find("'", equalSetPos); // Start after the first quote
+                size_t endQuote = setClause.find("'", startQuote + 1); // Find the end quote
+                string updateColumn = setClause.substr(0, equalSetPos);
+                updateColumn = updateColumn.substr(updateColumn.find_first_not_of(' '), updateColumn.find_last_not_of(' ') - updateColumn.find_first_not_of(' ') + 1);
+
+                // Extract the update value
+                string updateValue = setClause.substr(startQuote + 1, endQuote - startQuote - 1);
+
+                // Extract column name and value (from WHERE clause)
+                string whereClause = line.substr(wherePos + 5);
+                size_t equalWherePos = whereClause.find("="); // Find the equal sign to separate column name and value
+                string whereColumn = whereClause.substr(0, equalWherePos);
+                whereColumn = whereColumn.substr(whereColumn.find_first_not_of(' '), whereColumn.find_last_not_of(' ') - whereColumn.find_first_not_of(' ') + 1);
+
+                // Extract the WHERE value
+                string whereValue = whereClause.substr(equalWherePos + 1);
+                whereValue = whereValue.substr(whereValue.find_first_not_of(' '), whereValue.find_last_not_of(' ') - whereValue.find_first_not_of(' ') + 1);
+                if (!whereValue.empty() && whereValue.back() == ';') {
+                    whereValue = whereValue.substr(0, whereValue.size() - 1);
+                }
+
+                // Find column indices for UPDATE and WHERE
+                int updateIndex = -1, whereIndex = -1; // Initialize indices as not found (-1)
+                for (size_t i = 0; i < headers.size(); i++) {
+                    if (headers[i] == updateColumn) updateIndex = i;
+                    if (headers[i] == whereColumn) whereIndex = i;
+                }
+
+                // Update the data in matching rows
+                if (updateIndex != -1 && whereIndex != -1) { // Check if the indices are valid
+                    for (auto& row : data) {
+                        if (row[whereIndex] == whereValue) { // Compare the value in WHERE column
+                            row[updateIndex] = updateValue; // Update the value if WHERE condition is matched
+                        }
+                    }
+                } else {
+                    cerr << "Error: Column not found in the table headers.\n";
+                }
+            } else {
+                cerr << "Error: Malformed UPDATE statement.\n";
+            }
+        }
+
+    }
+    // Second pass: Process DELETE statements
+    inFile.clear();
+    inFile.seekg(0);
+    while (getline(inFile, line)) {
+        if (line.find("DELETE FROM") != string::npos) {
+            processDelete(line, data, headers);
+        }
     }
 
-    // Write the CSV headers to terminal and file
+    // Write the table schema
     outFile << "CREATE TABLE " << tableName << "(" << endl;
     for (size_t i = 0; i < headers.size(); i++) {
         outFile << "  " << headers[i] << " TEXT";
@@ -102,7 +198,7 @@ int main() {
     }
     outFile << ");" << endl << endl;
 
-    // Write the CSV header row
+    // Write the data rows
     for (size_t i = 0; i < headers.size(); i++) {
         cout << headers[i];
         outFile << headers[i];
@@ -114,7 +210,6 @@ int main() {
     cout << endl;
     outFile << endl;
 
-    // Write CSV rows (data) to terminal and file
     for (const auto& row : data) {
         for (size_t i = 0; i < row.size(); i++) {
             cout << row[i];
