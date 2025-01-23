@@ -220,6 +220,7 @@ int main() {
     vector<vector<string>> data;
     bool inCreateTable = false;
     string accumulatedColumns;
+    string tableName;
 
     if (!inFile) {
         cout << "Error opening fileinput2.txt" << endl;
@@ -240,6 +241,22 @@ int main() {
         else if (line.find("UPDATE") != string::npos) {
         processUPDATE(line, headers, data);
         }
+        else if (line.find("SELECT COUNT(*) FROM") != string::npos) {
+        // Parse the SELECT COUNT(*) query
+        size_t pos = line.find("FROM") + 5;
+        string queryTable = line.substr(pos);
+        queryTable.erase(remove(queryTable.begin(), queryTable.end(), ';'), queryTable.end());
+        queryTable.erase(remove(queryTable.begin(), queryTable.end(), ' '), queryTable.end());
+
+        // Match the table name and count rows
+        if (queryTable == tableName) {
+            cout << "Row count: " << data.size() << endl;
+            outFile << "Row count: " << data.size() << endl;
+        } else {
+            cerr << "Error: Table '" << queryTable << "' not found." << endl;
+        }
+    }
+
     }
 
     // Second pass: Process DELETE statements
