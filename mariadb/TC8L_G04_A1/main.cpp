@@ -24,39 +24,45 @@
 
 using namespace std;
 
-void processCreateTable(const string& line, vector<string>& headers, string& accumulatedColumns, bool& inCreateTable) {
-    size_t start = line.find("CREATE TABLE") + 12;
-    size_t end = line.find("(");
-    if (start != string::npos && end != string::npos) {
-        inCreateTable = true;
-    }
+void processCreateTable(const string& line, vector<string>& headers, string& accumulatedColumns, bool& inCreateTable, string& tableName) {
+      if (line.find("CREATE TABLE") != string::npos) {
+          // Extract table name
+          size_t start = line.find("CREATE TABLE") + 12;
+          size_t end = line.find("(");
+          if (start != string::npos && end != string::npos) {
+              tableName = line.substr(start, end - start);
+              tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end()); // Remove extra spaces
+              inCreateTable = true; // Indicate that we're processing the table
+          }
+      }
 
-    if (inCreateTable) {
-        start = line.find('(');
-        end = line.find(')');
-        if (start != string::npos) {
-            // Start of column definitions
-            accumulatedColumns += line.substr(start + 1);
-        } else {
-            accumulatedColumns += line; // Accumulate multi-line definitions
-        }
+      if (inCreateTable) {
+          size_t start = line.find('(');
+          size_t end = line.find(')');
+          if (start != string::npos) {
+              // Start of column definitions
+              accumulatedColumns += line.substr(start + 1);
+          } else {
+              // Accumulate multi-line column definitions
+              accumulatedColumns += line;
+          }
 
-        if (end != string::npos) {
-            // End of column definitions
-            accumulatedColumns = accumulatedColumns.substr(0, accumulatedColumns.find(')')); // Remove trailing `)`
-            stringstream ss(accumulatedColumns);
-            string column;
-            while (getline(ss, column, ',')) {
-                size_t spacePos = column.find(' ');
-                if (spacePos != string::npos) {
-                    headers.push_back(column.substr(0, spacePos));
-                }
-            }
-            inCreateTable = false;
-            accumulatedColumns.clear();
-        }
-    }
-}
+          if (end != string::npos) {
+              // End of column definitions
+              accumulatedColumns = accumulatedColumns.substr(0, accumulatedColumns.find(')')); // Remove trailing `)`
+              stringstream ss(accumulatedColumns);
+              string column;
+              while (getline(ss, column, ',')) {
+                  size_t spacePos = column.find(' ');
+                  if (spacePos != string::npos) {
+                      headers.push_back(column.substr(0, spacePos)); // Extract column name
+                  }
+              }
+              inCreateTable = false; // Done processing
+              accumulatedColumns.clear(); // Clear accumulated data
+          }
+      }
+  }
 
 void processValues(const string& line, vector<vector<string>>& data) {
     size_t start = line.find('(') + 1;
@@ -234,7 +240,7 @@ int main() {
         }
 
         if (line.find("CREATE TABLE") != string::npos || inCreateTable) {
-            processCreateTable(line, headers, accumulatedColumns, inCreateTable);
+            processCreateTable(line, headers, accumulatedColumns, inCreateTable, tableName);
         } else if (line.find("VALUES") != string::npos) {
             processValues(line, data);
         }
@@ -254,6 +260,7 @@ int main() {
             outFile << "Row count: " << data.size() << endl;
         } else {
             cerr << "Error: Table '" << queryTable << "' not found." << endl;
+            outFile << "Error: Table '" << queryTable << "' not found." << endl;
         }
     }
 
