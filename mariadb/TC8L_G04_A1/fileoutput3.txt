@@ -1,3 +1,5 @@
+5
+customer
 customer_id,customer_name,customer_city,customer_state,customer_country,customer_phone,customer_email
 1,kelly,kuala lumpur,selangor,country1,0123123123,kelly@test.com
 2,ben,los angeles,california,united state,123455667,ben@test.com

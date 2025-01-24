@@ -10,7 +10,7 @@
 // Member_4: ID | NAME | EMAIL | PHONE
 // *********************************************************
 // Task Distribution
-// Member_1: Create Database,View Database,CREATE TABLE, CSV export,
+// Member_1: ProcessCreateTable, ProcessValues, ProcessTable,
 // Member_2:
 // Member_3:
 // Member_4:
@@ -23,6 +23,11 @@
 #include <algorithm>
 
 using namespace std;
+
+void processTables(ofstream& outFile, const string& tableName) {
+    cout << tableName << endl;
+    outFile << tableName << endl;
+}
 
 void processCreateTable(const string& line, vector<string>& headers, string& accumulatedColumns, bool& inCreateTable, string& tableName) {
       if (line.find("CREATE TABLE") != string::npos) {
@@ -158,7 +163,6 @@ void processDelete(const string& line, vector<vector<string>>& data, const vecto
         }
     }
 
-    cout << "Deleted " << (originalSize - data.size()) << " rows" << endl;
 }
 
 void processUPDATE(const string& line, vector<string>& headers, vector<vector<string>>& data) {
@@ -171,7 +175,7 @@ void processUPDATE(const string& line, vector<string>& headers, vector<vector<st
         string tableName = line.substr(line.find("UPDATE") + 6, setPos - (line.find("UPDATE") + 6));
         tableName = tableName.substr(tableName.find_first_not_of(' '), tableName.find_last_not_of(' ') - tableName.find_first_not_of(' ') + 1);
 
-        // Extract column name and value (from SET clause)
+        // Extract column name and value (from SET)
         string setClause = line.substr(setPos + 4, wherePos - (setPos + 4));
         size_t equalSetPos = setClause.find("="); // Find the equal sign to separate column name and value
         size_t startQuote = setClause.find("'", equalSetPos); // Start after the first quote
@@ -182,15 +186,16 @@ void processUPDATE(const string& line, vector<string>& headers, vector<vector<st
         // Extract the update value
         string updateValue = setClause.substr(startQuote + 1, endQuote - startQuote - 1);
 
-        // Extract column name and value (from WHERE clause)
+        // Extract the WHERE value (from WHERE)
         string whereClause = line.substr(wherePos + 5);
         size_t equalWherePos = whereClause.find("="); // Find the equal sign to separate column name and value
         string whereColumn = whereClause.substr(0, equalWherePos);
         whereColumn = whereColumn.substr(whereColumn.find_first_not_of(' '), whereColumn.find_last_not_of(' ') - whereColumn.find_first_not_of(' ') + 1);
 
-        // Extract the WHERE value
         string whereValue = whereClause.substr(equalWherePos + 1);
         whereValue = whereValue.substr(whereValue.find_first_not_of(' '), whereValue.find_last_not_of(' ') - whereValue.find_first_not_of(' ') + 1);
+
+        //Remove trailing semicolon from WhereValue if it exists
         if (!whereValue.empty() && whereValue.back() == ';') {
             whereValue = whereValue.substr(0, whereValue.size() - 1);
         }
@@ -217,6 +222,23 @@ void processUPDATE(const string& line, vector<string>& headers, vector<vector<st
     }
 }
 
+void processCount(const string &line, const string &tableName, const vector<vector<string>> &data, ofstream &outFile) {
+    // Parse the SELECT COUNT(*) query
+    size_t pos = line.find("FROM") + 5;
+    string queryTable = line.substr(pos);
+    queryTable.erase(remove(queryTable.begin(), queryTable.end(), ';'), queryTable.end());
+    queryTable.erase(remove(queryTable.begin(), queryTable.end(), ' '), queryTable.end());
+
+    // Match the table name and count rows
+    if (queryTable == tableName) {
+        cout << data.size() << endl;
+        outFile << data.size() << endl;
+    } else {
+        cerr << "Error: Table '" << queryTable << "' not found." << endl;
+        outFile << "Error: Table '" << queryTable << "' not found." << endl;
+    }
+}
+
 
 int main() {
     ifstream inFile("fileinput2.txt");
@@ -233,40 +255,25 @@ int main() {
         return 1;
     }
 
-    // First pass: Process CREATE TABLE and INSERT
+    //Process CREATE TABLE and INSERT
     while (getline(inFile, line)) {
-        if (line.find("DELETE FROM") != string::npos) {
-            continue;
-        }
-
         if (line.find("CREATE TABLE") != string::npos || inCreateTable) {
             processCreateTable(line, headers, accumulatedColumns, inCreateTable, tableName);
         } else if (line.find("VALUES") != string::npos) {
             processValues(line, data);
         }
-        else if (line.find("UPDATE") != string::npos) {
-        processUPDATE(line, headers, data);
-        }
-        else if (line.find("SELECT COUNT(*) FROM") != string::npos) {
-        // Parse the SELECT COUNT(*) query
-        size_t pos = line.find("FROM") + 5;
-        string queryTable = line.substr(pos);
-        queryTable.erase(remove(queryTable.begin(), queryTable.end(), ';'), queryTable.end());
-        queryTable.erase(remove(queryTable.begin(), queryTable.end(), ' '), queryTable.end());
+    }
 
-        // Match the table name and count rows
-        if (queryTable == tableName) {
-            cout << "Row count: " << data.size() << endl;
-            outFile << "Row count: " << data.size() << endl;
-        } else {
-            cerr << "Error: Table '" << queryTable << "' not found." << endl;
-            outFile << "Error: Table '" << queryTable << "' not found." << endl;
+    //Process UPDATE statements
+    inFile.clear();
+    inFile.seekg(0);
+    while (getline(inFile, line)) {
+        if (line.find("UPDATE") != string::npos) {
+            processUPDATE(line, headers, data);
         }
     }
 
-    }
-
-    // Second pass: Process DELETE statements
+    //Process DELETE statements
     inFile.clear();
     inFile.seekg(0);
     while (getline(inFile, line)) {
@@ -274,6 +281,9 @@ int main() {
             processDelete(line, data, headers);
         }
     }
+
+    // Output TABLES
+    processTables(outFile, tableName);
 
     // Write the headers
     for (size_t i = 0; i < headers.size(); i++) {
@@ -299,6 +309,15 @@ int main() {
         }
         cout << endl;
         outFile << endl;
+    }
+
+    //Process COUNT queries
+    inFile.clear();
+    inFile.seekg(0);
+    while (getline(inFile, line)) {
+        if (line.find("SELECT COUNT(*) FROM") != string::npos) {
+            processCount(line, tableName, data, outFile);
+        }
     }
 
     inFile.close();
