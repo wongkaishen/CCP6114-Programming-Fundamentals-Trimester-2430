@@ -1,0 +1,32 @@
+CREATE fileOutput3.txt;
+DATABASES;
+CREATE TABLE customer(
+customer_id INT,
+customer_name TEXT,
+customer_city TEXT,
+customer_state TEXT,
+customer_country TEXT,
+customer_phone TEXT,
+customer_email TEXT
+);
+INSERT INTO
+customer(customer_id,customer_name,customer_city,customer_state,customer_country,custom
+er_phone,customer_email) VALUES (1,'kelly','kuala lumpur','selangor','country1','0123123123','kelly@test.com');
+INSERT INTO
+customer(customer_id,customer_name,customer_city,customer_state,customer_country,custom
+er_phone,customer_email) VALUES (2,'ben','los angeles','california','malaysia','123455667','ben@test.com');
+INSERT INTO
+customer(customer_id,customer_name,customer_city,customer_state,customer_country,custom
+er_phone,customer_email) VALUES (3,'son','cyberjaya','selangor','malaysia','0161241241','son@test.com');
+INSERT INTO
+customer(customer_id,customer_name,customer_city,customer_state,customer_country,custom
+er_phone,customer_email) VALUES (4,'michie','george town','penang','malaysia','012532523','michie@test.com');
+INSERT INTO
+customer(customer_id,customer_name,customer_city,customer_state,customer_country,custom
+er_phone,customer_email) VALUES (5,'mike','new york','new york state','united state','1241241','mike@test.com');
+TABLES;
+UPDATE customer SET customer_country='united state' WHERE customer_id=2;
+SELECT * FROM customer;
+DELETE FROM customer WHERE customer_id=4;
+SELECT * FROM customer;
+SELECT COUNT(*) FROM customer;

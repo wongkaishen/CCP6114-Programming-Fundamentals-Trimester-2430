@@ -1,6 +1,13 @@
 CREATE fileOutput2.txt;
 DATABASES;
-CREATE TABLE customer(customer_id INT,customer_name TEXT,customer_city TEXT,customer_state TEXT,customer_country TEXT,customer_phone TEXT,customer_email TEXT
+CREATE TABLE customer(
+customer_id INT,
+customer_name TEXT,
+customer_city TEXT,
+customer_state TEXT,
+customer_country TEXT,
+customer_phone TEXT,
+customer_email TEXT
 );
 INSERT INTO
 customer(customer_id,customer_name,customer_city,customer_state,customer_country,custom
@@ -16,7 +23,7 @@ customer(customer_id,customer_name,customer_city,customer_state,customer_country
 er_phone,customer_email) VALUES (4,'name4','city4','state4','country4','phone4','email4');
 SELECT * FROM customer;
 TABLES;
-UPDATE customer SET customer_email='email54443' WHERE customer_id=2;
+UPDATE customer SET customer_email='email333' WHERE customer_id=3;
 SELECT * FROM customer;
 DELETE FROM customer WHERE customer_id=4;
 SELECT * FROM customer;
