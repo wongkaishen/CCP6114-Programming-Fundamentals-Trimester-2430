@@ -1,19 +1,19 @@
 // *********************************************************
 // Program: main.cpp
 // Course: CCP6114 Programming Fundamentals
-// Lecture Class: TC3L
+// Lecture Class: TC8L
 // Tutorial Class: T16L
 // Trimester: 2430
 // Member_1: 243UC247DH | WONG KAI SHEN | wong.kai.shen@student.mmu.edu.my | 0167129682
-// Member_2: 243UC2467K | Teh Shin Rou | EMAIL | PHONE
-// Member_3: 243UC2466T | Nyiam Zi Qin | EMAIL | PHONE
+// Member_2: 243UC2467K | Teh Shin Rou | teh.shin.rou@student.mmu.edu.my | 0102407909
+// Member_3: 243UC2466T | Nyiam Zi Qin | NYIAM.ZI.QIN@student.mmu.edu.my | 0189700993
 // Member_4: 243UC246NQ | Yen Ming Jun | yen.ming.jun@student.mmu.edu.my | 01153726266
 // *********************************************************
 // Task Distribution
-// Member_1: ProcessCreateTable, ProcessValues, ProcessTable,
-// Member_2:
-// Member_3:
-// Member_4:
+// Member_1: ProcessCreateFile,processTables,ProcessCreateTable, ProcessValues, ProcessSelectQuary,processDatabases, main
+// Member_2: ProcessUpdate, Update flowchart,
+// Member_3: processCount, Count Flowchart,
+// Member_4: processDelete, Delete Flowchart,
 // *********************************************************
 #include <iostream>
 #include <fstream>
@@ -23,6 +23,23 @@
 #include <algorithm>
 
 using namespace std;
+
+void processCreateFile(const string& line, ofstream& outFile) {
+    size_t start = line.find("CREATE") + 7; // Find "CREATE" and move past it
+    size_t end = line.find(";");            // Find the semicolon
+    if (start != string::npos && end != string::npos) {
+        string fileName = line.substr(start, end - start);
+        fileName.erase(remove(fileName.begin(), fileName.end(), ' '), fileName.end()); // Remove spaces
+
+        // Close the current output file and open the new one
+        outFile.close();
+        outFile.open(fileName);
+        if (!outFile) {
+            cerr << "Error: Unable to create file " << fileName << endl;
+            return;
+        }
+    }
+}
 
 void processTables(ofstream& outFile, const string& tableName) {
     cout << tableName << endl;
@@ -70,13 +87,13 @@ void processCreateTable(const string& line, vector<string>& headers, string& acc
   }
 
 void processValues(const string& line, vector<vector<string>>& data) {
-    size_t start = line.find('(') + 1;
-    size_t end = line.find(')');
-    string values = line.substr(start, end - start);
-
-    vector<string> row;
-    string value;
-    bool inQuote = false;
+    if (line.find("VALUES") != string::npos) {
+        size_t start = line.find('(') + 1;
+        size_t end = line.find(')');
+        string values = line.substr(start, end - start);
+        vector<string> row;
+        string value;
+        bool inQuote = false;
 
     for (char c : values) {
         if (c == '\'') {
@@ -94,6 +111,7 @@ void processValues(const string& line, vector<vector<string>>& data) {
         row.push_back(value);
     }
     data.push_back(row);
+    }
 }
 
 void processDelete(const string& line, vector<vector<string>>& data, const vector<string>& headers) {
@@ -122,16 +140,13 @@ void processDelete(const string& line, vector<vector<string>>& data, const vecto
 
             deleteConditions.push_back({columnName, value});
         }
-
         if (orPos != string::npos) {
             conditions = conditions.substr(orPos + 4);  // Skip " OR "
         } else {
             conditions.clear();
         }
     }
-
     size_t originalSize = data.size();
-
     auto rowIter = data.begin();
     while (rowIter != data.end()) {
         bool shouldDelete = false;
@@ -144,18 +159,15 @@ void processDelete(const string& line, vector<vector<string>>& data, const vecto
                     break;
                 }
             }
-
             if (columnIndex == -1) {
                 cout << "Column not found: " << columnName << endl;
                 continue;
             }
-
             if ((*rowIter)[columnIndex] == value) {
                 shouldDelete = true;
                 break;
             }
         }
-
         if (shouldDelete) {
             rowIter = data.erase(rowIter);
         } else {
@@ -163,6 +175,13 @@ void processDelete(const string& line, vector<vector<string>>& data, const vecto
         }
     }
 
+}
+
+void processDatabases(const string& line, const string& filein) {
+    // Check if the line contains "DATABASES;"
+    if (line.find("DATABASES;") != string::npos) {
+        cout << "C:\\mariadb\\" << filein << endl; // Output the required message
+    }
 }
 
 void processUPDATE(const string& line, vector<string>& headers, vector<vector<string>>& data) {
@@ -224,6 +243,7 @@ void processUPDATE(const string& line, vector<string>& headers, vector<vector<st
 
 void processCount(const string &line, const string &tableName, const vector<vector<string>> &data, ofstream &outFile) {
     // Parse the SELECT COUNT(*) query
+    if (line.find("SELECT COUNT(*)") != string::npos){
     size_t pos = line.find("FROM") + 5;
     string queryTable = line.substr(pos);
     queryTable.erase(remove(queryTable.begin(), queryTable.end(), ';'), queryTable.end());
@@ -236,13 +256,43 @@ void processCount(const string &line, const string &tableName, const vector<vect
     } else {
         cerr << "Error: Table '" << queryTable << "' not found." << endl;
         outFile << "Error: Table '" << queryTable << "' not found." << endl;
+        }
     }
 }
 
+void processSelectQuery(const string& line, const vector<string>& headers, const vector<vector<string>>& data, ofstream& outFile, string& tableName) {
+    if (line.find("SELECT * FROM") != string::npos) {
+        // Handle SELECT * FROM queries
+        for (size_t i = 0; i < headers.size(); i++) {
+            cout << headers[i];
+            outFile << headers[i];
+            if (i < headers.size() - 1) {
+                cout << ",";
+                outFile << ",";
+            }
+        }
+        cout << endl;
+        outFile << endl;
+
+        for (const auto& row : data) {
+            for (size_t i = 0; i < row.size(); i++) {
+                cout << row[i];
+                outFile << row[i];
+                if (i < row.size() - 1) {
+                    cout << ",";
+                    outFile << ",";
+                }
+            }
+            cout << endl;
+            outFile << endl;
+        }
+    }
+}
 
 int main() {
-    ifstream inFile("fileinput2.txt");
-    ofstream outFile("fileoutput2.txt");
+    string filein = "fileinput1.txt";// <=== Please change the file input here
+    ifstream inFile(filein);
+    ofstream outFile;
     string line;
     vector<string> headers;
     vector<vector<string>> data;
@@ -251,74 +301,38 @@ int main() {
     string tableName;
 
     if (!inFile) {
-        cout << "Error opening fileinput2.txt" << endl;
+        cout << "Please check if the file exist in your directory!" << endl;
         return 1;
     }
 
-    //Process CREATE TABLE and INSERT
     while (getline(inFile, line)) {
-        if (line.find("CREATE TABLE") != string::npos || inCreateTable) {
+        if (line.find("CREATE ") != string::npos && line.find("TABLE") == string::npos) {
+            processCreateFile(line, outFile);
+        }   else if (line.find("CREATE TABLE") != string::npos || inCreateTable) {
+            //Process CREATE TABLE
             processCreateTable(line, headers, accumulatedColumns, inCreateTable, tableName);
         } else if (line.find("VALUES") != string::npos) {
+            //Process INSERT VALUE
             processValues(line, data);
-        }
-    }
-
-    //Process UPDATE statements
-    inFile.clear();
-    inFile.seekg(0);
-    while (getline(inFile, line)) {
-        if (line.find("UPDATE") != string::npos) {
+        } else if (line.find("UPDATE") != string::npos) {
+            //Process UPDATE statements
             processUPDATE(line, headers, data);
-        }
-    }
-
-    //Process DELETE statements
-    inFile.clear();
-    inFile.seekg(0);
-    while (getline(inFile, line)) {
-        if (line.find("DELETE FROM") != string::npos) {
+        } else if (line.find("DELETE FROM") != string::npos) {
+            //Process DELETE statements
             processDelete(line, data, headers);
+        } else if (line.find("DATABASES;") != string::npos) {
+            processDatabases(line, filein);
+        } else if (line.find("SELECT COUNT(*) FROM") != string::npos) {
+        // Handle SELECT COUNT(*) FROM queries
+            processCount(line, tableName, data, outFile);
+        } else if(line.find("SELECT * FROM") != string::npos) {
+        //Process Select From statements
+            processSelectQuery(line, headers, data, outFile, tableName);
         }
     }
-
     // Output TABLES
     processTables(outFile, tableName);
 
-    // Write the headers
-    for (size_t i = 0; i < headers.size(); i++) {
-        cout << headers[i];
-        outFile << headers[i];
-        if (i < headers.size() - 1) {
-            cout << ",";
-            outFile << ",";
-        }
-    }
-    cout << endl;
-    outFile << endl;
-
-    // Write the data rows
-    for (const auto& row : data) {
-        for (size_t i = 0; i < row.size(); i++) {
-            cout << row[i];
-            outFile << row[i];
-            if (i < row.size() - 1) {
-                cout << ",";
-                outFile << ",";
-            }
-        }
-        cout << endl;
-        outFile << endl;
-    }
-
-    //Process COUNT queries
-    inFile.clear();
-    inFile.seekg(0);
-    while (getline(inFile, line)) {
-        if (line.find("SELECT COUNT(*) FROM") != string::npos) {
-            processCount(line, tableName, data, outFile);
-        }
-    }
 
     inFile.close();
     outFile.close();
